@@ -80,10 +80,6 @@ Implementation Specific:
 	time.Time -> UTCDateTime
 	[]byte    -> Binary
 
- Notice that coercion from float/float32 -> float64 is not supported because it
- would make the encoder asymmetric. Encoding/Decoding would result in a
- different object.
-
  Go types which serve as bson documents:
 	Map
 		Most commonly used type. Does not preserve order.
