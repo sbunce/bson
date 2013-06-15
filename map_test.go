@@ -1,9 +1,10 @@
-// Copyright 2013 Seth Bunce. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// Copyright 2013 Seth Bunce. All rights reserved. Use of this source code is
+// governed by a BSD-style license that can be found in the LICENSE file.
+
 package bson
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -32,6 +33,21 @@ var mapTest = []Map{
 	Map{"Int64": Int64(123)},
 	Map{"MinKey": MinKey{}},
 	Map{"MaxKey": MaxKey{}},
+}
+
+// Example of reaching in to a document.
+func Example() {
+	doc := Map{"foo": Map{"bar": String("baz")}}
+	var dst string
+	ok, err := doc.Reach(&dst, "foo", "bar")
+	if err != nil {
+		panic(err)
+	}
+	if !ok {
+		panic("foo.bar not found.")
+	}
+	fmt.Print(dst)
+	// Output: baz
 }
 
 func TestMap(t *testing.T) {

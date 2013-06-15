@@ -1,6 +1,6 @@
-// Copyright 2013 Seth Bunce. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// Copyright 2013 Seth Bunce. All rights reserved. Use of this source code is
+// governed by a BSD-style license that can be found in the LICENSE file.
+
 package bson
 
 import (
@@ -114,7 +114,7 @@ func assignError(dst reflect.Value, src interface{}) error {
 	return fmt.Errorf("cannot coerce %T to %T.", src, dst.Interface())
 }
 
-// Assign and coerce if needed.
+// assign and coerce if needed.
 func assign(dst, src interface{}) (bool, error) {
 	dstrv := indirectAlloc(reflect.ValueOf(dst))
 	switch srct := src.(type) {

@@ -1,6 +1,6 @@
-// Copyright 2013 Seth Bunce. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// Copyright 2013 Seth Bunce. All rights reserved. Use of this source code is
+// governed by a BSD-style license that can be found in the LICENSE file.
+
 package bson
 
 import (
@@ -14,69 +14,83 @@ import (
 	"sort"
 )
 
-// Maximum document size. Set at max of MongoDB.
-const maxDocLen = 16 * 1024 * 1024
+// maxDocLen is max supported size (bytes) of a document.
+const maxDocLen = 64 * 1024 * 1024
 
-// Read one raw bson doc and return it. Do not parse.
+// ReadOne BSON document.
 func ReadOne(rd io.Reader) (BSON, error) {
+	// Read length of document.
 	docLen, err := readInt32(rd)
 	if err != nil {
 		return nil, err
 	}
+
+	// Sanity check length.
 	if docLen > maxDocLen {
 		return nil, errors.New("Doc exceeded maximum size.")
 	}
+
+	// Read the document.
 	buf := make([]byte, int(docLen))
 	binary.LittleEndian.PutUint32(buf, uint32(docLen))
 	if _, err := io.ReadFull(rd, buf[4:]); err != nil {
 		return nil, err
 	}
+
 	return buf, nil
 }
 
-// Read one map.
+// ReadMap reads one Map.
 func ReadMap(rd io.Reader) (m Map, err error) {
+	// Just in case of programming mistake. Not intentionally used.
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.New(fmt.Sprint(r))
 		}
 	}()
+
 	return decodeMap(rd, "", true)
 }
 
-// Read one map, don't decode nested docs.
+// ReadMapNoNest reads one Map, but doesn't decode nested documents.
 func ReadMapNoNest(rd io.Reader) (m Map, err error) {
+	// Just in case of programming mistake. Not intentionally used.
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.New(fmt.Sprint(r))
 		}
 	}()
+
 	return decodeMap(rd, "", false)
 }
 
-// Read one Slice.
+// ReadSlice reads one Slice, but doesn't decode nested documents.
 func ReadSlice(rd io.Reader) (s Slice, err error) {
+	// Just in case of programming mistake. Not intentionally used.
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.New(fmt.Sprint(r))
 		}
 	}()
+
 	return decodeSlice(rd, "", true)
 }
 
-// Read one Slice, don't decode nested docs.
+// ReadSliceNoNest reads one Slice, but doesn't decode nested documents.
 func ReadSliceNoNest(rd io.Reader) (s Slice, err error) {
+	// Just in case of programming mistake. Not intentionally used.
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.New(fmt.Sprint(r))
 		}
 	}()
+
 	return decodeSlice(rd, "", false)
 }
 
-// Decode to Map.
-// Path is used to keep track of errors.
-// If nest is true then documents are recursively decoded.
+// decodeMap decodes to a Map. The path is used to keep track of where we've
+// recursed to in the document. If nest is true then nested documents are
+// decoded.
 func decodeMap(rdTmp io.Reader, path string, nest bool) (Map, error) {
 	// Read doc length.
 	docLen, err := readInt32(rdTmp)
@@ -240,9 +254,9 @@ func decodeMap(rdTmp io.Reader, path string, nest bool) (Map, error) {
 	return nil, nil
 }
 
-// Decode to Slice.
-// Path is used to keep track of errors.
-// If nest is true then documents are recursively decoded.
+// decodeSlice decodes to a Slice. The path is used to keep track of where we've
+// recursed to in the document. If nest is true then nested documents are
+// decoded.
 func decodeSlice(rdTmp io.Reader, path string, nest bool) (Slice, error) {
 	// Read doc length.
 	docLen, err := readInt32(rdTmp)
@@ -406,12 +420,14 @@ func decodeSlice(rdTmp io.Reader, path string, nest bool) (Slice, error) {
 	return nil, nil
 }
 
+// decodeArray decodes a BSON Array element.
 func decodeArray(rd *bufio.Reader, path string) (string, Array, error) {
 	// name
 	name, err := readCstring(rd)
 	if err != nil {
 		return "", nil, err
 	}
+
 	// value
 	doc, err := decodeMap(rd, path, true)
 	if err != nil {
@@ -433,17 +449,20 @@ func decodeArray(rd *bufio.Reader, path string) (string, Array, error) {
 	return name, slice.Interface().(Array), nil
 }
 
+// decodeBinary decodes BSON Binary element.
 func decodeBinary(rd *bufio.Reader) (string, Binary, error) {
 	// name
 	name, err := readCstring(rd)
 	if err != nil {
 		return "", nil, err
 	}
+
 	// value
 	dataLen, err := readInt32(rd)
 	if err != nil {
 		return "", nil, err
 	}
+
 	// discard subtype
 	_, err = rd.ReadByte()
 	if err != nil {
@@ -457,12 +476,14 @@ func decodeBinary(rd *bufio.Reader) (string, Binary, error) {
 	return name, Binary(b), nil
 }
 
+// decodeBool decodes BSON Bool element.
 func decodeBool(rd *bufio.Reader) (string, Bool, error) {
 	// name
 	name, err := readCstring(rd)
 	if err != nil {
 		return "", false, err
 	}
+
 	// value
 	b, err := rd.ReadByte()
 	if err != nil {
@@ -471,12 +492,14 @@ func decodeBool(rd *bufio.Reader) (string, Bool, error) {
 	return name, Bool(b == 0x01), nil
 }
 
+// decodeDBPointer decodes BSON DBPointer.
 func decodeDBPointer(rd *bufio.Reader) (string, DBPointer, error) {
 	// name
 	name, err := readCstring(rd)
 	if err != nil {
 		return "", DBPointer{}, err
 	}
+
 	// value
 	Name, err := readString(rd)
 	if err != nil {
@@ -490,12 +513,14 @@ func decodeDBPointer(rd *bufio.Reader) (string, DBPointer, error) {
 	return name, DBPointer{Name: Name, ObjectId: ObjectId(b)}, nil
 }
 
+// decodeFloat decodes BSON Float element.
 func decodeFloat(rd *bufio.Reader) (string, Float, error) {
 	// name
 	name, err := readCstring(rd)
 	if err != nil {
 		return "", Float(0), err
 	}
+
 	// value
 	b := make([]byte, 8)
 	_, err = io.ReadFull(rd, b)
@@ -514,12 +539,14 @@ func decodeFloat(rd *bufio.Reader) (string, Float, error) {
 	return name, Float(math.Float64frombits(u)), nil
 }
 
+// decodeInt32 decodes BSON Int32 element.
 func decodeInt32(rd *bufio.Reader) (string, Int32, error) {
 	// name
 	name, err := readCstring(rd)
 	if err != nil {
 		return "", 0, err
 	}
+
 	// value
 	i32, err := readInt32(rd)
 	if err != nil {
@@ -528,12 +555,14 @@ func decodeInt32(rd *bufio.Reader) (string, Int32, error) {
 	return name, Int32(i32), nil
 }
 
+// decodeInt64 decodes BSON Int64 element.
 func decodeInt64(rd *bufio.Reader) (string, Int64, error) {
 	// name
 	name, err := readCstring(rd)
 	if err != nil {
 		return "", 0, err
 	}
+
 	// value
 	i64, err := readInt64(rd)
 	if err != nil {
@@ -542,12 +571,14 @@ func decodeInt64(rd *bufio.Reader) (string, Int64, error) {
 	return name, Int64(i64), nil
 }
 
+// decodeJavascript decodes BSON Javascript element.
 func decodeJavascript(rd *bufio.Reader) (string, Javascript, error) {
 	// name
 	name, err := readCstring(rd)
 	if err != nil {
 		return "", "", err
 	}
+
 	// value
 	s, err := readString(rd)
 	if err != nil {
@@ -556,12 +587,14 @@ func decodeJavascript(rd *bufio.Reader) (string, Javascript, error) {
 	return name, Javascript(s), nil
 }
 
+// decodeJavascriptScope decodes BSON JavascriptScope element.
 func decodeJavascriptScope(rd *bufio.Reader, path string) (string, JavascriptScope, error) {
 	// name
 	name, err := readCstring(rd)
 	if err != nil {
 		return "", JavascriptScope{}, err
 	}
+
 	// value
 	_, err = readInt32(rd)
 	if err != nil {
@@ -578,6 +611,7 @@ func decodeJavascriptScope(rd *bufio.Reader, path string) (string, JavascriptSco
 	return name, JavascriptScope{Javascript: js, Scope: m}, nil
 }
 
+// decodeMaxKey decodes BSON MaxKey element.
 func decodeMaxKey(rd *bufio.Reader) (string, MaxKey, error) {
 	// name
 	name, err := readCstring(rd)
@@ -587,6 +621,7 @@ func decodeMaxKey(rd *bufio.Reader) (string, MaxKey, error) {
 	return name, MaxKey{}, nil
 }
 
+// decodeMinKey decodes BSON JavascriptMinKey element.
 func decodeMinKey(rd *bufio.Reader) (string, MinKey, error) {
 	// name
 	name, err := readCstring(rd)
@@ -596,6 +631,7 @@ func decodeMinKey(rd *bufio.Reader) (string, MinKey, error) {
 	return name, MinKey{}, nil
 }
 
+// decodeNull decodes BSON Null element.
 func decodeNull(rd *bufio.Reader) (string, Null, error) {
 	// name
 	name, err := readCstring(rd)
@@ -605,12 +641,14 @@ func decodeNull(rd *bufio.Reader) (string, Null, error) {
 	return name, Null{}, nil
 }
 
+// decodeObjectId decodes BSON ObjectId element.
 func decodeObjectId(rd *bufio.Reader) (string, ObjectId, error) {
 	// name
 	name, err := readCstring(rd)
 	if err != nil {
 		return "", nil, err
 	}
+
 	// value
 	b := make([]byte, 12)
 	_, err = io.ReadFull(rd, b)
@@ -620,17 +658,20 @@ func decodeObjectId(rd *bufio.Reader) (string, ObjectId, error) {
 	return name, ObjectId(b), nil
 }
 
+// decodeRegexp decodes BSON Regexp element.
 func decodeRegexp(rd *bufio.Reader) (string, Regexp, error) {
 	// name
 	name, err := readCstring(rd)
 	if err != nil {
 		return "", Regexp{}, err
 	}
+
 	// pattern
 	pattern, err := readCstring(rd)
 	if err != nil {
 		return "", Regexp{}, err
 	}
+
 	// options
 	options, err := readCstring(rd)
 	if err != nil {
@@ -639,12 +680,14 @@ func decodeRegexp(rd *bufio.Reader) (string, Regexp, error) {
 	return name, Regexp{Pattern: pattern, Options: options}, nil
 }
 
+// decodeString decodes BSON String element.
 func decodeString(rd *bufio.Reader) (string, String, error) {
 	// name
 	name, err := readCstring(rd)
 	if err != nil {
 		return "", "", err
 	}
+
 	// value
 	s, err := readString(rd)
 	if err != nil {
@@ -653,12 +696,14 @@ func decodeString(rd *bufio.Reader) (string, String, error) {
 	return name, String(s), nil
 }
 
+// decodeSymbol decodes BSON Symbol element.
 func decodeSymbol(rd *bufio.Reader) (string, Symbol, error) {
 	// name
 	name, err := readCstring(rd)
 	if err != nil {
 		return "", "", err
 	}
+
 	// value
 	s, err := readString(rd)
 	if err != nil {
@@ -667,12 +712,14 @@ func decodeSymbol(rd *bufio.Reader) (string, Symbol, error) {
 	return name, Symbol(s), nil
 }
 
+// decodeTimestamp decodes BSON Timestamp element.
 func decodeTimestamp(rd *bufio.Reader) (string, Timestamp, error) {
 	// name
 	name, err := readCstring(rd)
 	if err != nil {
 		return "", 0, err
 	}
+
 	// value
 	i64, err := readInt64(rd)
 	if err != nil {
@@ -681,6 +728,7 @@ func decodeTimestamp(rd *bufio.Reader) (string, Timestamp, error) {
 	return name, Timestamp(i64), nil
 }
 
+// decodeUndefined decodes BSON Undefined element.
 func decodeUndefined(rd *bufio.Reader) (string, Undefined, error) {
 	// name
 	name, err := readCstring(rd)
@@ -690,12 +738,14 @@ func decodeUndefined(rd *bufio.Reader) (string, Undefined, error) {
 	return name, Undefined{}, nil
 }
 
+// decodeUTCDateTime decodes BSON UTCDateTime element.
 func decodeUTCDateTime(rd *bufio.Reader) (string, UTCDateTime, error) {
 	// name
 	name, err := readCstring(rd)
 	if err != nil {
 		return "", 0, err
 	}
+
 	// value
 	i64, err := readInt64(rd)
 	if err != nil {
@@ -704,7 +754,7 @@ func decodeUTCDateTime(rd *bufio.Reader) (string, UTCDateTime, error) {
 	return name, UTCDateTime(i64), nil
 }
 
-// Read BSON cstring.
+// readCString reads one BSON C string. This is not a BSON element.
 func readCstring(rd *bufio.Reader) (string, error) {
 	s, err := rd.ReadString(0x00)
 	if err != nil {
@@ -713,7 +763,7 @@ func readCstring(rd *bufio.Reader) (string, error) {
 	return s[:len(s)-1], nil
 }
 
-// Read BSON int32.
+// readBSONInt32 reads one int32. This is not a BSON element.
 func readInt32(rd io.Reader) (int32, error) {
 	var i int32
 	if err := binary.Read(rd, binary.LittleEndian, &i); err != nil {
@@ -722,7 +772,7 @@ func readInt32(rd io.Reader) (int32, error) {
 	return i, nil
 }
 
-// Read BSON int64.
+// readInt64 reads one int64. This is not a BSON element.
 func readInt64(rd io.Reader) (int64, error) {
 	var i int64
 	if err := binary.Read(rd, binary.LittleEndian, &i); err != nil {
@@ -731,8 +781,9 @@ func readInt64(rd io.Reader) (int64, error) {
 	return i, nil
 }
 
-// Read BSON string.
+// readString reads one string. This is not a BSON element.
 func readString(rd *bufio.Reader) (string, error) {
+	// Read string length.
 	var sLen int32
 	if err := binary.Read(rd, binary.LittleEndian, &sLen); err != nil {
 		return "", err
@@ -740,11 +791,8 @@ func readString(rd *bufio.Reader) (string, error) {
 	if sLen == 0 {
 		return "", nil
 	}
-	if sLen > maxDocLen {
-		// This is a sanity check to make sure we got a reasonable len.
-		return "", errors.New(fmt.Sprint("String too large, ", sLen,
-			" bytes."))
-	}
+
+	// Read string.
 	b := make([]byte, sLen)
 	if _, err := io.ReadFull(rd, b); err != nil {
 		return "", err

@@ -1,6 +1,6 @@
-// Copyright 2013 Seth Bunce. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// Copyright 2013 Seth Bunce. All rights reserved. Use of this source code is
+// governed by a BSD-style license that can be found in the LICENSE file.
+
 package bson
 
 import (
@@ -8,7 +8,6 @@ import (
 	"testing"
 )
 
-// Convert Slice -> bson -> Slice then compare Slices.
 var sliceTest = []Slice{
 	Slice{{"Float", Float(123.123)}},
 	Slice{{"String", String("123")}},

@@ -1,6 +1,6 @@
-// Copyright 2013 Seth Bunce. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// Copyright 2013 Seth Bunce. All rights reserved. Use of this source code is
+// governed by a BSD-style license that can be found in the LICENSE file.
+
 package bson
 
 import (
@@ -10,41 +10,45 @@ import (
 	"time"
 )
 
-// Map, Slice, and BSON conform to this.
+// Doc is a BSON document. Map, Slice, and BSON conform to this.
 type Doc interface {
-	Encode() (BSON, error) // Return raw BSON.
-	MustEncode() BSON      // Return raw BSON. Panic if encode error.
+	// Encode returns raw BSON.
+	Encode() (BSON, error)
+
+	// MustEncode returns raw BSON and panics upon error.
+	MustEncode() BSON
 }
 
-// BSON doc type.
-// This is the most commonly used doc type.
+// Map is a BSON document type. This should be used when the order of encoded
+// elements does not matter.
 type Map map[string]interface{}
 
-// BSON doc type.
-// This is used when order must be preserved.
+// Slice is a BSON document type. This should be used when the order of encoded
+// elements matters.
 type Slice []Pair
 
-// Element of Slice.
+// Pair is a element of a Slice. Typically the field names are not specifie
+// when using this type.
 type Pair struct {
 	Key string
 	Val interface{}
 }
 
-// BSON doc type.
-// Raw BSON document.
+// BSON is a raw BSON document. This is provided so that it's not necessary to
+// decode BSON to include it in another document.
 type BSON []byte
 
-// Allows using a pre-encoded value.
+// Encode returns the raw BSON document.
 func (this BSON) Encode() (BSON, error) {
 	return this, nil
 }
 
-// Allows using a pre-encoded value.
+// MustEncode returns the raw BSON document. Never panics.
 func (this BSON) MustEncode() BSON {
 	return this
 }
 
-// Return JSON.
+// JSON transcodes the BSON document to JSON.
 func (this BSON) JSON() (string, error) {
 	m, err := this.Map()
 	if err != nil {
@@ -57,27 +61,29 @@ func (this BSON) JSON() (string, error) {
 	return string(j), nil
 }
 
-// Decode BSON to Map.
+// Map decodes the BSON to a Map. Order of encded elements is not preserved.
 func (this BSON) Map() (Map, error) {
 	return ReadMap(bytes.NewBuffer(this))
 }
 
-// Decode BSON to Map, but don't decode nested docs.
+// MapNoNest decodes the BSON to a Map, but leaves nested documents encoded as
+// BSON. This is useful when it's not necessary to decode the whole document.
 func (this BSON) MapNoNest() (Map, error) {
 	return ReadMapNoNest(bytes.NewBuffer(this))
 }
 
-// Decode BSON to Slice.
+// Slice decodes the BSON to a Slice. Order of encoded elements is preserved.
 func (this BSON) Slice() (Slice, error) {
 	return ReadSlice(bytes.NewBuffer(this))
 }
 
-// Decode BSON to Slice, but don't decode nested docs.
+// Decode BSON to Slice, but don't decode nested docs. This is useful when it's
+// not necessary to decode the whole document.
 func (this BSON) SliceNoNest() (Slice, error) {
 	return ReadSliceNoNest(bytes.NewBuffer(this))
 }
 
-// Return raw bson.
+// Encode Map to BSON.
 func (this Map) Encode() (BSON, error) {
 	b, err := encodeMap("", this)
 	if err != nil {
@@ -86,7 +92,7 @@ func (this Map) Encode() (BSON, error) {
 	return b, nil
 }
 
-// Return raw bson. Panic on error.
+// MustEncode panics if Map cannot be encoded to BSON.
 func (this Map) MustEncode() BSON {
 	b, err := encodeMap("", this)
 	if err != nil {
@@ -95,7 +101,7 @@ func (this Map) MustEncode() BSON {
 	return b
 }
 
-// Pretty print bson value.
+// print pretty-prints BSON value.
 func print(v interface{}) string {
 	switch vt := v.(type) {
 	case Map:
@@ -155,7 +161,7 @@ func print(v interface{}) string {
 	return fmt.Sprint(v)
 }
 
-// Pretty printer.
+// String pretty prints the Map with BSON types.
 func (this Map) String() string {
 	wr := bytes.NewBuffer(nil)
 	fmt.Fprint(wr, "Map[")
@@ -166,7 +172,7 @@ func (this Map) String() string {
 	return wr.String()
 }
 
-// Return raw bson.
+// Encode Slice to BSON.
 func (this Slice) Encode() (BSON, error) {
 	b, err := encodeSlice("", this)
 	if err != nil {
@@ -175,7 +181,7 @@ func (this Slice) Encode() (BSON, error) {
 	return b, nil
 }
 
-// Return raw bson. Panic on error.
+// MustEncode panics if Slice cannot be encoded to BSON.
 func (this Slice) MustEncode() BSON {
 	b, err := encodeSlice("", this)
 	if err != nil {
@@ -184,7 +190,7 @@ func (this Slice) MustEncode() BSON {
 	return b
 }
 
-// Pretty printer.
+// String pretty prints the Slice with BSON types.
 func (this Slice) String() string {
 	wr := bytes.NewBuffer(nil)
 	fmt.Fprint(wr, "Slice[")

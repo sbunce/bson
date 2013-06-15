@@ -1,6 +1,6 @@
-// Copyright 2013 Seth Bunce. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// Copyright 2013 Seth Bunce. All rights reserved. Use of this source code is
+// governed by a BSD-style license that can be found in the LICENSE file.
+
 package bson
 
 import (
@@ -8,13 +8,7 @@ import (
 	"testing"
 )
 
-type structTest struct {
-	src interface{} // Encode this.
-	dst interface{} // Decode to this.
-	exp interface{} // Expect dst will equal this.
-}
-
-// Test struct tags.
+// tags is used for struct tag test.
 type tags struct {
 	Ignore     string `bson:"-"`
 	Rename     string `bson:"rename_ok"`
@@ -22,14 +16,18 @@ type tags struct {
 	Omit       string `bson:",omitempty"`
 }
 
-// Test that unexported field is ignored.
+// unexport is used to test that unexported field is ignored.
 type unexport struct {
 	foo string
 }
 
-var structTests = []structTest{
+var structTests = []struct{
+	src interface{} // Encode this.
+	dst interface{} // Decode to this.
+	exp interface{} // Expect dst will equal this.
+}{
 	// Struct tags. Encode with omit field empty.
-	structTest{
+	{
 		src: tags{
 			Ignore:     "foo",
 			Rename:     "bar",
@@ -40,8 +38,9 @@ var structTests = []structTest{
 			"rename_ok": String("bar"),
 		},
 	},
+
 	// Struct tags. Encode with omit fields not empty.
-	structTest{
+	{
 		src: tags{
 			Ignore:     "foo",
 			Rename:     "bar",
@@ -54,8 +53,9 @@ var structTests = []structTest{
 			"Omit":          String("321"),
 		},
 	},
+
 	// Unexported field.
-	structTest{
+	{
 		src: unexport{
 			foo: "bar",
 		},

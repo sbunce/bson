@@ -1,6 +1,6 @@
-// Copyright 2013 Seth Bunce. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// Copyright 2013 Seth Bunce. All rights reserved. Use of this source code is
+// governed by a BSD-style license that can be found in the LICENSE file.
+
 package bson
 
 import (
@@ -14,11 +14,13 @@ import (
 	"time"
 )
 
-// Last ID used.
-// Use requestID function to get next.
+// lastCount is used to get a incrementing value for a ObjectId. This must only
+// be incremented atomically.
 var lastCount int32
 
-// Concatenate name to path.
+// catpath concatenates a name on to a document path. This is used to keep track
+// of where we are in a document for the purpose of generating descriptive
+// errors.
 func catpath(path, name string) string {
 	if path == "" {
 		return name
@@ -26,7 +28,7 @@ func catpath(path, name string) string {
 	return strings.Join([]string{path, name}, ".")
 }
 
-// Indirect all interfaces/pointers.
+// indirect all interfaces/pointers.
 func indirect(v reflect.Value) reflect.Value {
 loop:
 	for {
@@ -40,8 +42,8 @@ loop:
 	return v
 }
 
-// Indirect and allocate if needed.
-// If nil interface then allocate Map.
+// indirectAlloc indirects all interfaces/pointers and allocates a value if
+// needed. If value is nil then a Map is allocated.
 func indirectAlloc(v reflect.Value) reflect.Value {
 loop:
 	for {
@@ -75,8 +77,7 @@ loop:
 }
 
 // Create unique incrementing ObjectId.
-// Same format used by MongoDB.
-// 
+//
 //   +---+---+---+---+---+---+---+---+---+---+---+---+
 //   |       A       |     B     |   C   |     D     |
 //   +---+---+---+---+---+---+---+---+---+---+---+---+
@@ -84,11 +85,16 @@ loop:
 //   A = unix time (big endian), B = machine ID (first 3 bytes of md5 host name),
 //   C = PID, D = incrementing counter (big endian)
 func NewObjectId() (ObjectId, error) {
-	// oid := make(ObjectId, 0)
 	buf := bytes.NewBuffer(make([]byte, 0, 12))
-	if err := binary.Write(buf, binary.BigEndian, int32(time.Now().Unix())); err != nil {
+
+	// A, unix time (big endian).
+	if err := binary.Write(buf, binary.BigEndian, int32(time.Now().Unix()));
+		err != nil {
+
 		return nil, err
 	}
+
+	// B, machine Id hash.
 	name, err := os.Hostname()
 	if err != nil {
 		return nil, err
@@ -100,10 +106,15 @@ func NewObjectId() (ObjectId, error) {
 	if _, err := buf.Write(hash.Sum(nil)[:3]); err != nil {
 		return nil, err
 	}
-	if err := binary.Write(buf, binary.BigEndian, int16(os.Getpid())); err != nil {
+
+	// C, PID (process Id).
+	if err := binary.Write(buf, binary.BigEndian, int16(os.Getpid()));
+		err != nil {
+
 		return nil, err
 	}
-	// Wrap at 2^24 because we only use 3 bytes.
+
+	// D, incrementing counter.
 	cnt := atomic.AddInt32(&lastCount, 1) % 16777215
 	cntbuf := make([]byte, 4)
 	binary.BigEndian.PutUint32(cntbuf, uint32(cnt))
