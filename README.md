@@ -7,16 +7,16 @@ Documents
 ---------
 The following types serve as BSON documents.
 
-####Map
+#### Map
 Map is the most commonly used document type. However, it does not support ordering. For this reason Slice is provided.
 
-####Slice
+#### Slice
 Slice is used when ordering in the encoded document must be preserved. If order is not required a Map should be used.
 
-####BSON
+#### BSON
 BSON is a raw BSON type. This is a supported document type so we can use preencoded documents for encoding efficiency. It also allows us to partially decode a document for decoding effiency.
 
-####Structs
+#### Structs
 Currently structs are only supported by the encoder.
 
     Field int `bson:"-"`                // Ignored.
